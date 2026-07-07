@@ -13,12 +13,15 @@ self-contained vanilla OpenSCAD so it renders identically in real OpenSCAD and i
 
 ## Reusing the hinge library
 
-Box lids need hinges — don't reinvent them here. `../OpenSCAD_hinge/hinge_library.scad` already
-has parametric, vanilla-OpenSCAD hinge modules (`knuckle_hinge`, `piano_hinge`, `living_hinge`,
-`door_butt_hinge`, `snap_lid_hinge`). Reference it directly:
+Box lids need hinges — don't reinvent them here. `../OpenSCAD_hinge/hinge_library.scad` (also at
+github.com/morganp/OpenSCAD_hinge) already has parametric, vanilla-OpenSCAD hinge modules
+(`knuckle_hinge`, `piano_hinge`, `living_hinge`, `door_butt_hinge`, `snap_lid_hinge`). Reference
+it with a relative `include` for local/real-OpenSCAD work, tagged with a `// @github:` comment so
+OpenSCAD-gui (a browser tool with no filesystem access) can auto-fetch the same file from GitHub:
 
 ```openscad
-include <../OpenSCAD_hinge/hinge_library.scad>
+// @github: morganp/OpenSCAD_hinge
+include <hinge_library.scad>
 include <case_library.scad>
 
 // position a hinge along the lid seam of a case module, e.g.:
@@ -26,6 +29,13 @@ translate([box_length/2 - 20, box_width, box_wall_h])
     rotate([90,0,0])
         piano_hinge(length=box_length - 40, leaf_width=10, leaf_thickness=box_wall_t);
 ```
+
+The `// @github: owner/repo[@ref][/subdir]` line must sit directly above the `include`/`use` it
+applies to — real OpenSCAD ignores it as a comment (resolve `hinge_library.scad` locally via
+OPENSCADPATH or a copy alongside this file); OpenSCAD-gui reads it, and if `hinge_library.scad`
+isn't already loaded, fetches the whole repo via the GitHub API the same way its manual "Library"
+dialog does, then resolves the include normally. See `../OpenSCAD-gui/CLAUDE.md`, Phase 10, for
+how the fetch/cache/fallback works.
 
 If a case needs a hinge variant that doesn't exist yet, add it to
 `../OpenSCAD_hinge/hinge_library.scad` (with its own demo/render/schematic per that project's
