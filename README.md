@@ -12,6 +12,9 @@ This is an independent implementation built to that feature set, not a copy of t
 
 ![hinged_box render](renders/hinged_box.png)
 
+**[▶ Open in SCAD Studio](https://lizard-spock.co.uk/openscad-gui/?github=morganp/OpenSCAD_case/examples/hinged_box_demo.scad)** —
+view this example in the browser, no install; the library (and its hinge dependency) load automatically.
+
 ```openscad
 include <case_library.scad>
 
