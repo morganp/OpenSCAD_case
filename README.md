@@ -1,16 +1,21 @@
 # OpenSCAD_case
 
-Parametric case/box library, plain OpenSCAD, for Bambu/Orca-ready print-in-place boxes.
-Loadable standalone in real OpenSCAD and by [OpenSCAD-gui](../OpenSCAD-gui).
+Parametric case/box library, plain OpenSCAD, no external libraries beyond the
+[OpenSCAD_hinge](https://github.com/morganp/OpenSCAD_hinge) dependency (auto-fetched by
+[OpenSCAD-gui](../OpenSCAD-gui) via its `// @github:` tag). Loadable standalone in real
+OpenSCAD and in the browser.
 
-## hinged_box — print-in-place hinged, snap-fit box
+## hinged_box — two-tray hinged box with pinned hinges and a snap latch
 
-Inspired by the class of tool at [obloid.app/tools/hinged-box](https://obloid.app/tools/hinged-box):
-adjustable size/depth, dividers, rounded corners, lid text, prints as one piece (box + living
-hinge + lid), fold closed by hand after printing, snaps shut on a latch opposite the hinge.
-This is an independent implementation built to that feature set, not a copy of that site's code.
+A body tray and a lid tray joined by real pinned hinges across the back seam, with an
+alignment lip on the body rim and a snap latch on the front. Two printed parts, no supports;
+each part carries its own fused hinge leaf, and a pin dropped through the knuckles finishes
+the assembly. Far more robust than a living/flex hinge, and the pin is replaceable if it
+ever wears.
 
-![hinged_box render](renders/hinged_box.png)
+| Print pose | Closed (assembly check) |
+|---|---|
+| ![hinged_box print pose](renders/hinged_box.png) | ![hinged_box closed](renders/hinged_box_closed.png) |
 
 **[▶ Open in SCAD Studio](https://lizard-spock.co.uk/openscad-gui/?github=morganp/OpenSCAD_case/examples/hinged_box_demo.scad)** —
 view this example in the browser, no install; the library (and its hinge dependency) load automatically.
@@ -20,58 +25,102 @@ include <case_library.scad>
 
 hinged_box(
     length = 120, width = 80, height = 40,
+    lid_depth = 15,
     div_x = 2, div_y = 1,
     lid_text = "TOOLS"
 );
 ```
 
-### How it prints and folds
+### Hinge types
 
-Printed **flat/open**: the box sits normally (open top up), a thin `living_hinge` strip bridges
-its back top edge to a flat lid panel that extends further out in +Y, lid skirt walls point
-*up* while flat. After printing, fold the lid ~180° over the hinge — the geometry is arranged so
-the skirt walls end up wrapping down around the box's outer walls, and a latch ridge on the
-box's front wall (opposite the hinge) snaps into a matching groove on the lid's front skirt.
+| `hinge_type` | Hinge | Pin |
+|---|---|---|
+| `"piano"` (default) | One continuous knuckle hinge across the back seam — even load spread, sturdiest | 1.75mm filament offcut |
+| `"knuckle"` | `hinge_count` discrete knuckle hinges — lighter, classic look | 1.75mm filament offcut |
+| `"crate"` | Chunky raised-lug crate hinges, lid opens past 180° — the rugged/ammo-box look | 4mm rod, or the printed pins emitted beside the parts |
 
-Print settings (slicer profile, not module parameters): **0.2mm layer height, 3–4 walls, PLA or
-PETG** — PETG holds up to repeated hinge flexing better than PLA.
+The hinge geometry itself comes from
+[OpenSCAD_hinge](https://github.com/morganp/OpenSCAD_hinge)'s `piano_hinge` /
+`knuckle_hinge` / `crate_hinge`, emitted one leaf at a time (`parts="leaf1"/"leaf2"`) so
+each printed part gets its own fused leaf.
+
+### Rugged box variation
+
+Set `hinge_type="crate"` and `ribs > 0` for the rugged-crate look: vertical ribs run up the
+front wall, across the seam, and over the lid top; crate hinges hang on the back.
+
+```openscad
+hinged_box(
+    length = 140, width = 90, height = 45, lid_depth = 20,
+    hinge_type = "crate", hinge_count = 2, hinge_len = 32,
+    ribs = 4
+);
+```
+
+| Print pose | Closed |
+|---|---|
+| ![rugged_box print pose](renders/rugged_box.png) | ![rugged_box closed](renders/rugged_box_closed.png) |
+
+**[▶ Open in SCAD Studio](https://lizard-spock.co.uk/openscad-gui/?github=morganp/OpenSCAD_case/examples/rugged_box_demo.scad)**
+
+### How it prints and assembles
+
+`pose="print"` (default) lays both parts flat on the bed: the body upright, the lid beyond
+it in +Y opening up. Print, then mate the hinge knuckles and push the pin through — a length
+of 1.75mm filament for piano/knuckle (melt-mushroom the ends to captivate it), a 4mm rod or
+the printed pins for crate. The lid then folds over; the lip registers it and the front
+ridge snaps into the groove inside the lid wall.
+
+`pose="closed"` renders the assembled box (pins shown in place) for checking fit,
+proportions, and lid text before printing.
+
+Print settings (slicer profile, not module parameters): 0.2mm layer height, 3–4 walls, PLA
+or PETG. The small piano/knuckle barrel overhangs on the back faces print fine without
+supports; the chunky crate lugs stick out further and may want supports or tuned bridging.
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| `length` | 120 | Box outer footprint, X |
-| `width` | 80 | Box outer footprint, Y (excludes the hinge/lid extension) |
-| `height` | 40 | Box outer height, Z |
+| `length` | 120 | Outer footprint, X |
+| `width` | 80 | Outer footprint, Y |
+| `height` | 40 | Body tray outer height (bed to seam) |
+| `lid_depth` | 15 | Lid tray outer height above the seam |
 | `wall` | 2.4 | Wall thickness |
 | `corner_r` | 6 | Outer corner rounding radius |
 | `div_x` | 0 | Internal dividers splitting `length` (walls run along Y) |
 | `div_y` | 0 | Internal dividers splitting `width` (walls run along X) |
 | `div_thickness` | 1.6 | Divider wall thickness |
-| `hinge_depth` | 10 | Y-span of the living-hinge strip (fold direction) |
+| `hinge_type` | "piano" | `"piano"` / `"knuckle"` / `"crate"` |
+| `hinge_count` | 2 | Number of discrete hinges (knuckle/crate) |
+| `hinge_len` | 30 | Leaf length along X per discrete hinge (knuckle/crate) |
 | `hinge_margin` | 8 | Hinge inset from each end along X |
-| `hinge_web` | 0.6 | Living-hinge web thickness (flex layer) |
-| `hinge_grooves` | 3 | Living-hinge relief groove count |
-| `lid_len` | 0 (auto) | Y-span of the lid panel in the open/print pose |
-| `lid_rim` | 6 | Depth of the lid's downturned skirt |
-| `lid_clearance` | 0.3 | Radial clearance between skirt and box outer wall |
-| `latch_w` | 14 | Width of the snap latch, centered on the front wall |
-| `latch_bump` | 0.8 | Ridge protrusion / groove depth |
-| `lid_text` | "" | Text engraved (or embossed) into the lid |
+| `knuckle_od` | 0 (auto) | Piano/knuckle barrel OD; auto = `max(5, 2*wall)` |
+| `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate |
+| `pin_clearance` | 0.25 | Radial pin-to-bore clearance |
+| `leaf_thickness` | 2 | Hinge leaf/strap thickness on the back faces |
+| `lip_h` | 4 | Alignment lip height above the seam |
+| `lid_clearance` | 0.3 | Radial clearance between lip and lid inner wall |
+| `latch_w` | 14 | Snap latch width, centered on the front |
+| `latch_bump` | 0.8 | Snap ridge protrusion from the lip face |
+| `ribs` | 0 | Rugged-look vertical ribs on the front wall and over the lid top |
+| `rib_w` | 0 (auto) | Rib width; auto = `2.5*wall` |
+| `rib_depth` | 0 (auto) | Rib protrusion; auto = `wall` |
+| `lid_text` | "" | Text on the lid's outer top face |
 | `lid_text_size` | 10 | Lid text size |
 | `lid_text_depth` | 0.6 | Engrave/emboss depth |
-| `lid_text_emboss` | false | true = raised text, false = engraved |
+| `lid_text_emboss` | false | true = raised text (prints face-down — prefer the default deboss on FDM) |
+| `pose` | "print" | `"print"` = parts flat on the bed, `"closed"` = assembled preview |
 | `fn` | 48 | Circle resolution |
 
-**Snap-fit note:** `lid_clearance` / `latch_bump` are a best-effort starting point, not tuned to
-any specific printer or material — check fit on a test print and adjust before relying on the
-latch.
-
-**Orientation note:** because the lid folds 180° to close, its *open-pose top face* (facing up
-during printing) ends up facing *into* the box once folded — the open-pose *bottom* face becomes
-the box's outward-facing lid top. `lid_text` is engraved/embossed on the open-pose top face for
-visibility while printing; mirror it yourself if you need it on the outward face instead.
+**Fit notes:** `lid_clearance`, `latch_bump`, and `pin_clearance` are best-effort starting
+points, not tuned to a specific printer/material — check on a test print. Lid text sits on
+the outer top face, which prints against the bed; the default debossed text prints fine
+face-down, raised text does not. Ribs and lid text both occupy the lid top, so debossed text
+carves through any ribs it crosses (stencil look) — drop one or the other if that's not
+wanted.
 
 ## Regenerating previews
 
 ```sh
-openscad -o renders/<name>.png --imgsize=1000,700 --autocenter --viewall examples/<name>_demo.scad
+openscad -o renders/<name>.png        --imgsize=1000,700 --autocenter --viewall examples/<name>_demo.scad
+openscad -o renders/<name>_closed.png --imgsize=1000,700 --autocenter --viewall -D 'pose="closed"' examples/<name>_demo.scad
 ```
