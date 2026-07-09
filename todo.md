@@ -34,6 +34,9 @@ Review found the old flat-fold design unprintable at all (the open-pose lid pane
 - [ ] Multi-color 3MF: box / lid / text colors (`color()` exports to 3MF in recent
       OpenSCAD); "color text flush" variant in addition to deboss/emboss.
 - [ ] Rough weight estimate in the `echo()` readout.
+- [ ] `inner = true` flag on hinged_box reinterpreting length/width/height/lid_depth as
+      internal dimensions (convert once at the top: `l = inner ? length + 2*wall : length`
+      etc.) — obloid-style tools offer this.
 - [ ] Draw-latch / toggle-clasp option for the rugged box (snap lip is the only latch now).
 - [ ] Optional side ribs + back ribs that dodge the hinge strap positions.
 - [ ] Lip top-edge lead-in chamfer for easier closing.

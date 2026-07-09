@@ -86,8 +86,8 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 |---|---|---|
 | `length` | 120 | Outer footprint, X |
 | `width` | 80 | Outer footprint, Y |
-| `height` | 40 | Body tray outer height (bed to seam) |
-| `lid_depth` | 15 | Lid tray outer height above the seam |
+| `height` | 40 | Body tray **outer** height, bed to seam, includes the floor wall |
+| `lid_depth` | 15 | Lid tray **outer** height above the seam, includes the lid top wall |
 | `wall` | 2.4 | Wall thickness |
 | `corner_r` | 6 | Outer corner rounding radius |
 | `div_x` | 0 | Internal dividers splitting `length` (walls run along Y) |
@@ -114,6 +114,11 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 | `lid_text_emboss` | false | true = raised text (prints face-down — prefer the default deboss on FDM) |
 | `pose` | "print" | `"print"` = parts flat on the bed, `"closed"` = assembled preview |
 | `fn` | 48 | Circle resolution |
+
+**Dimensions are outer.** All four size parameters are external, walls included. The
+`echo()` output reports the internal numbers at render time: internal footprint
+`(length-2*wall) x (width-2*wall)`, body cavity depth `height-wall`, and closed
+floor-to-lid clearance `height+lid_depth-2*wall`.
 
 **Fit notes:** `lid_clearance`, `latch_bump`, and `pin_clearance` are best-effort starting
 points, not tuned to a specific printer/material — check on a test print. Lid text sits on

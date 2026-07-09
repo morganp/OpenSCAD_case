@@ -217,8 +217,8 @@ module _hb_axis_cyl(xs, len_each, y, z, r, fn) {
 module hinged_box(
     length          = 120,
     width           = 80,
-    height          = 40,     // body tray outer height (to the seam)
-    lid_depth       = 15,     // lid tray outer height above the seam
+    height          = 40,     // body tray OUTER height, bed to seam, includes the floor wall
+    lid_depth       = 15,     // lid tray OUTER height above the seam, includes the lid top wall
     wall            = 2.4,
     corner_r        = 6,
     div_x           = 0,
@@ -276,9 +276,12 @@ module hinged_box(
     y_off    = 2*w + 15;                          // lid print position gap
 
     echo(str("hinged_box: body ", l, "x", w, "x", hb, "mm + lid ", l, "x", w, "x", hl,
-             "mm, hinge=", hinge_type, ", pin d=", pin,
+             "mm (outer), hinge=", hinge_type, ", pin d=", pin,
              crate ? "mm (printed pins beside the parts)"
                    : "mm (use a length of 1.75mm filament as the pin)"));
+    echo(str("hinged_box internal: footprint ", l - 2*t, "x", w - 2*t,
+             "mm, body cavity depth ", hb - t,
+             "mm, closed clearance floor-to-lid ", hb + hl - 2*t, "mm"));
 
     translate([-l/2, -w/2, 0]) {
         // body: notch the rim around the foreign (lid-side) knuckles, fuse the body leaf,
