@@ -97,7 +97,7 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 | `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate |
 | `pin_clearance` | 0.25 | Radial pin-to-bore clearance |
 | `leaf_thickness` | 2 | Hinge leaf/strap thickness on the back faces |
-| `lip_h` | 4 | Alignment lip height above the seam |
+| `lip_h` | 4 | Alignment lip height above the seam (clamped to fit inside the lid cavity: `lid_depth - wall - lid_clearance`) |
 | `lid_clearance` | 0.3 | Radial clearance between lip and lid inner wall |
 | `latch_w` | 14 | Snap latch width, centered on the front |
 | `latch_bump` | 0.8 | Snap ridge protrusion from the lip face |

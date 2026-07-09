@@ -77,7 +77,7 @@ module _hb_lip(l, w, wall, c, lip_t, z, lip_h, y_max, corner_r, fn) {
 // Snap ridge on the lip's front outer face: square bottom face retains the closed lid,
 // chamfered top face cams the lid wall outward as it slides down over the lip.
 module _hb_bump(l, wall, c, z, lip_h, latch_w, latch_bump) {
-    bh = min(3, lip_h - 1.2);
+    bh = max(0.6, min(3, lip_h - 1.2));
     z0 = z + max(0.6, (lip_h - bh)/2);
     yo = wall + c; // lip outer face
     hull() {
@@ -114,7 +114,7 @@ module _hb_lid(l, w, hb, hl, wall, corner_r, c,
                rib_xs, rib_w, rib_d, back_ch,
                txt, txt_size, txt_depth, txt_emboss, fn) {
     top = hb + hl;
-    bh  = min(3, lip_h - 1.2);
+    bh  = max(0.6, min(3, lip_h - 1.2));
     z0  = hb + max(0.6, (lip_h - bh)/2);
     gd  = latch_bump - c + 0.2; // groove depth into the wall, from its inner face
     difference() {
@@ -243,7 +243,8 @@ module hinged_box(
     strapw = max(6, min(16, hl - edge - 0.6));    // crate strap width, fits lid wall
     ch    = crate ? 0 : 0.8;  // rim edge chamfer so the rim clears the low piano barrel
     lip_t = max(1.2, t/2);
-    lip_ymax = w - t - c - (lip_h + 2*t);         // keep the lip out of the hinge swing zone
+    lip_he = max(0.8, min(lip_h, hl - t - c));    // lip must fit inside the lid cavity
+    lip_ymax = w - t - c - (lip_he + 2*t);        // keep the lip out of the hinge swing zone
     rw    = rib_w > 0 ? rib_w : 2.5*t;
     rd    = rib_depth > 0 ? rib_depth : t;
     rib_m = max(corner_r, rw) + 2;
@@ -263,13 +264,13 @@ module hinged_box(
 
     translate([-l/2, -w/2, 0]) {
         _hb_body(l, w, hb, t, corner_r, div_x, div_y, div_thickness,
-                 lip_h, lip_t, c, lip_ymax, latch_w, latch_bump,
+                 lip_he, lip_t, c, lip_ymax, latch_w, latch_bump,
                  rib_xs, rw, rd, ch, fn);
         _hb_hinges(hinge_type, xs, w, hb, len_each, leafw, strapw, kod, cod,
                    pin, pin_clearance, leaf_thickness, "leaf2", fn);
 
         if (pose == "closed") {
-            _hb_lid(l, w, hb, hl, t, corner_r, c, lip_h, latch_w, latch_bump,
+            _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w, latch_bump,
                     rib_xs, rw, rd, ch,
                     lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
             _hb_hinges(hinge_type, xs, w, hb, len_each, leafw, strapw, kod, cod,
@@ -282,7 +283,7 @@ module hinged_box(
             // lid printed opening-up beyond the body in +Y, its hinge leaf riding along
             translate([0, y_off, hb + hl])
                 rotate([180, 0, 0]) {
-                    _hb_lid(l, w, hb, hl, t, corner_r, c, lip_h, latch_w, latch_bump,
+                    _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w, latch_bump,
                             rib_xs, rw, rd, ch,
                             lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
                     _hb_hinges(hinge_type, xs, w, hb, len_each, leafw, strapw, kod, cod,
