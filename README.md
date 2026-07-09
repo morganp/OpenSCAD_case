@@ -38,7 +38,7 @@ hinged_box(
 | `"piano"` (default) | One continuous knuckle hinge across the back seam — even load spread, sturdiest | 1.75mm filament offcut |
 | `"knuckle"` | `hinge_count` discrete knuckle hinges — lighter, classic look | 1.75mm filament offcut |
 | `"crate"` | Chunky raised-lug crate hinges, lid opens past 180° — the rugged/ammo-box look | 4mm rod, or the printed pins emitted beside the parts |
-| `"flush"` | Fully hidden hinge: pivot buried mid-wall, knuckle OD = wall thickness, zero protrusion; lid opens ~120°, not 180° | ~`wall - 1.4` rod/wire (1mm paperclip at 2.4 walls), inserted through the port on the rounded back corner |
+| `"flush"` | Fully hidden hinge: pivot buried mid-wall, knuckle OD = wall thickness, zero protrusion; works down to 2mm walls; lid opens ~120°, not 180° | 0.8mm rod/wire, slid in along the seam; far end blind, printed cap glues into the first knuckle |
 
 The hinge geometry itself comes from
 [OpenSCAD_hinge](https://github.com/morganp/OpenSCAD_hinge)'s `piano_hinge` /
@@ -49,10 +49,16 @@ each printed part gets its own fused leaf.
 
 `hinge_type="flush"` buries the pivot in the middle of the back wall: the knuckles are sized
 to the wall thickness and nothing protrudes past the outer face — the hinge reads as a plain
-seam with a knuckle line inside a full-length cove. The trade-offs are a ~120° opening
-(anything through a mid-wall pivot must be coaxial knuckles, and the rims need the cove to
-swing past the buried axis) and a thin pin, `wall - 1.4` (a 1mm paperclip wire at the default
-2.4 wall) pushed in through the small port on the rounded back corner.
+seam with a knuckle line inside a cove. Works down to 2mm walls (2mm knuckles). The trade-off
+is a ~120° opening: anything through a mid-wall pivot must be coaxial knuckles, and the rims
+need the cove to swing past the buried axis.
+
+The pin is a 0.8mm rod or wire (`pin_d` auto). The axis line runs through open air behind
+the rounded back corner, so the rod slides straight in along the seam with no tunnel; a plug
+fused inside the far knuckle makes that end blind so the rod cannot walk out, and the small
+printed cap (emitted beside the parts) glues into the first knuckle's bore to close the
+entry. Cap and plug are coaxial with the pivot, so the swing never touches them. The
+`echo()` output states the rod cut length.
 
 | Print pose | Closed |
 |---|---|

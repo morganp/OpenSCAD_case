@@ -7,7 +7,8 @@ hinged_box(
     width      = 80,
     height     = 40,
     lid_depth  = 15,
-    wall       = 2.4,
+    wall       = 2,   // flush hinge works down to 2mm walls: 2mm knuckles, 0.8mm rod pin
+
     corner_r   = 6,
     hinge_type = "flush",
     lid_text   = "STASH",

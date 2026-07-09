@@ -222,10 +222,13 @@ module _hb_axis_cyl(xs, len_each, y, z, r, fn) {
 //   "crate"   — chunky raised-lug crate hinges for the rugged/ammo-box look; pair with
 //               ribs > 0. Lid opens past 180 degrees.
 //   "flush"   — fully hidden hinge: pivot centered inside the back wall, knuckle OD equals
-//               the wall thickness, zero protrusion. Costs opening range (~120 degrees, not
-//               180) and needs a thin pin (~wall - 1.4, e.g. a 1mm paperclip wire at 2.4
-//               walls), inserted through the port on the rounded back corner. A full-length
-//               cove relief along the seam lets the rims swing past the buried axis.
+//               the wall thickness, zero protrusion; works down to 2mm walls. Costs opening
+//               range (~120 degrees, not 180). Pin is a 0.8mm rod/wire slid in along the
+//               seam from past the left corner (the axis line runs through open air behind
+//               the corner rounding, so no tunnel is needed); a plug fused inside the far
+//               knuckle makes that end blind, and a small printed cap glues into the first
+//               knuckle's bore to close the entry — both coaxial, so the swing never sees
+//               them. A cove relief along the seam lets the rims swing past the buried axis.
 //
 // An alignment lip on the body rim registers the closed lid; a snap ridge on the lip's
 // front face clicks into a groove inside the lid wall. Clearances are a best-effort
@@ -273,8 +276,10 @@ module hinged_box(
     kod   = flush ? t : (knuckle_od > 0 ? knuckle_od : max(5, 2*t));
     cod   = 9;                                    // crate barrel OD
     pin   = pin_d > 0 ? pin_d
-          : flush ? max(0.8, t - 1.4)             // ~1mm rod/wire (a paperclip) at 2.4 wall
+          : flush ? 0.8                           // 0.8mm rod/wire, works down to 2mm walls
           : crate ? 4 : 1.75;
+    pinc  = flush ? min(pin_clearance, 0.15) : pin_clearance; // thin flush knuckles need a
+                                                  // snugger bore to keep any skin around it
     edge  = crate ? cod/2 + 0.4 : kod/2 + 0.3;    // barrel-to-strap edge, per hinge module
     leaf_te = flush ? t/2                         // flush: anchor plates fill the inner half
             : min(leaf_thickness, t - 0.4);       // else recessed, keep under the wall
@@ -282,6 +287,8 @@ module hinged_box(
     strapw = max(3, min(16, hl - edge - 0.4));    // crate strap width, fits lid wall
     ch    = (crate || flush) ? 0 : 0.8; // rim chamfer to clear the low external piano barrel
     lip_t = min(1, t/2);      // lip = inner portion of the wall: max 1mm or 50% of the wall
+    lb    = min(latch_bump, c + max(0.2, t - lip_t - c - 0.4)); // clamp the snap ridge so its
+                              // groove leaves >=0.4 skin in the rebated lid wall
     lip_he = max(0.8, min(lip_h, hl - t - c - 0.2)); // lip + rebate fit inside the lid cavity
     lip_ymax = w - t - c - (lip_he + 2*t);        // keep the lip out of the hinge swing zone
     rw    = rib_w > 0 ? rib_w : 2.5*t;
@@ -298,9 +305,22 @@ module hinged_box(
     y_ax     = mount_y + (crate ? cod : kod/2);   // flush: axis mid-wall, zero protrusion
     relief_r = crate ? 0 : flush ? t : kod/2 + 0.4; // rim relief around the barrel/knuckles;
                                                   // flush needs a full cove or the lid binds
-    rel_xs   = flush ? [l/2] : xs;                // flush: relieve the whole seam, since the
-    rel_len  = flush ? l + 2 : len_each;          // side-wall rim corners swing past the axis
-    bore_r   = pin/2 + pin_clearance + 0.05;      // top-level pin bore radius
+    // Flush cove extent: the cove is needed wherever wall material sits within one
+    // wall-thickness of the buried axis. Nearest corner material lies (recession - t/2)
+    // from the axis, so the cove runs into the corners until the surface has receded 1.5t.
+    cove0    = corner_r > 1.5*t
+             ? corner_r - sqrt(corner_r*corner_r - (corner_r - 1.5*t)*(corner_r - 1.5*t))
+             : 0;
+    rel_xs   = flush ? [l/2] : xs;                // flush: relieve the whole straight seam,
+    rel_len  = flush ? l - 2*cove0 - 1 : len_each;// since the rim corners swing past the axis
+    bore_r   = pin/2 + pinc + 0.05;               // top-level pin bore radius
+    // Flush pin retention: beyond the cove the axis line passes through open air behind the
+    // rounded corner, so the rod slides straight in from the left with no tunnel. A plug
+    // fused inside the far knuckle makes that end blind; the printed cap glues into the
+    // first knuckle's bore to close the near end. Both are coaxial, so they never touch the
+    // swing. Rod lives entirely inside the knuckles, between cap stem and plug.
+    plug_x   = l - hinge_margin - 1.8;            // blind plug position, inside the far knuckle
+    rod_len  = l - 2*hinge_margin - 6;            // rod span between cap stem and plug
     y_off    = 2*w + 15;                          // lid print position gap
 
     echo(str("hinged_box: body ", l, "x", w, "x", hb, "mm + lid ", l, "x", w, "x", hl,
@@ -309,7 +329,10 @@ module hinged_box(
                    : flush ? "mm (use a rod/wire of that dia as the pin, e.g. a paperclip)"
                            : "mm (use a length of 1.75mm filament as the pin)"));
     if (flush)
-        echo("hinged_box flush hinge: lid opens ~120 degrees, not 180; pin enters through the port on the rounded back corner");
+        echo(str("hinged_box flush hinge: lid opens ~120 degrees, not 180. Cut the ", pin,
+                 "mm rod to ~", round(rod_len), "mm, slide it in along the seam from past",
+                 " the left corner until it stops (the far end is blind), then glue the",
+                 " printed cap's stem into the first knuckle's bore behind it."));
     echo(str("hinged_box internal: footprint ", l - 2*t, "x", w - 2*t,
              "mm, body cavity depth ", hb - t,
              "mm, closed clearance floor-to-lid ", hb + hl - 2*t, "mm"));
@@ -321,14 +344,14 @@ module hinged_box(
             union() {
                 difference() {
                     _hb_body(l, w, hb, t, corner_r, div_x, div_y, div_thickness,
-                             lip_he, lip_t, c, lip_ymax, latch_w, latch_bump,
+                             lip_he, lip_t, c, lip_ymax, latch_w, lb,
                              rib_xs, rw, rd, ch, fn);
                     _hb_axis_cyl(rel_xs, rel_len, y_ax, hb, relief_r, fn);
                 }
                 _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw, kod, cod,
-                           pin, pin_clearance, leaf_te, "leaf2", fn);
+                           pin, pinc, leaf_te, "leaf2", fn);
             }
-            _hb_axis_cyl([l/2], l + 2, y_ax, hb, bore_r, fn); // full-length: pin entry groove
+            _hb_axis_cyl([l/2], l + 1, y_ax, hb, flush ? 0 : bore_r, fn); // pin bore (flush bores via the knuckles only)
         }
 
         if (pose == "closed") {
@@ -336,14 +359,18 @@ module hinged_box(
                 union() {
                     difference() {
                         _hb_lid(l, w, hb, hl, t, corner_r, c, lip_t, lip_ymax, lip_he,
-                                latch_w, latch_bump, rib_xs, rw, rd, ch,
+                                latch_w, lb, rib_xs, rw, rd, ch,
                                 lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
                         _hb_axis_cyl(rel_xs, rel_len, y_ax, hb, relief_r, fn);
                     }
                     _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw, kod, cod,
-                               pin, pin_clearance, leaf_te, "leaf1", fn);
+                               pin, pinc, leaf_te, "leaf1", fn);
+                    if (flush) // blind plug fused inside the far knuckle: rod cannot slide out
+                        translate([plug_x, y_ax, hb])
+                            rotate([0, 90, 0])
+                                cylinder(h=1.7, r=bore_r + 0.15, $fn=fn);
                 }
-                _hb_axis_cyl([l/2], l + 2, y_ax, hb, bore_r, fn); // full-length: pin entry groove
+                _hb_axis_cyl([l/2], l + 1, y_ax, hb, flush ? 0 : bore_r, fn); // pin bore (flush bores via the knuckles only)
             }
             for (x = xs) // pins shown in place
                 translate([x - len_each/2, y_ax, hb])
@@ -357,21 +384,31 @@ module hinged_box(
                         union() {
                             difference() {
                                 _hb_lid(l, w, hb, hl, t, corner_r, c, lip_t, lip_ymax,
-                                        lip_he, latch_w, latch_bump, rib_xs, rw, rd, ch,
+                                        lip_he, latch_w, lb, rib_xs, rw, rd, ch,
                                         lid_text, lid_text_size, lid_text_depth,
                                         lid_text_emboss, fn);
                                 _hb_axis_cyl(rel_xs, rel_len, y_ax, hb, relief_r, fn);
                             }
                             _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw,
-                                       kod, cod, pin, pin_clearance, leaf_te, "leaf1", fn);
+                                       kod, cod, pin, pinc, leaf_te, "leaf1", fn);
+                            if (flush) // blind plug fused inside the far knuckle
+                                translate([plug_x, y_ax, hb])
+                                    rotate([0, 90, 0])
+                                        cylinder(h=1.7, r=bore_r + 0.15, $fn=fn);
                         }
-                        _hb_axis_cyl([l/2], l + 2, y_ax, hb, bore_r, fn); // full-length: pin entry groove
+                        _hb_axis_cyl([l/2], l + 1, y_ax, hb, flush ? 0 : bore_r, fn); // pin bore (flush bores via the knuckles only)
                     }
             if (crate) // printed pins, one per hinge, lying in front of the body
                 for (i = [0:len(xs)-1])
                     translate([l/2 - (len_each - 1)/2, -rd - 8 - i*(pin + 4), pin/2])
                         rotate([0, 90, 0])
                             cylinder(h=len_each - 1, r=pin/2, $fn=fn);
+            if (flush) // glue-in cap: stem glues 4mm into the first knuckle's bore behind
+                       // the rod, small coaxial head sits against the knuckle end face
+                translate([-8, -8, 0]) {
+                    cylinder(h=1, r=min(kod/2 - 0.15, 0.85), $fn=fn);
+                    cylinder(h=5, r=bore_r - 0.12, $fn=fn);
+                }
         }
     }
 }
