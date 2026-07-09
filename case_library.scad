@@ -56,19 +56,21 @@ module _hb_edge_chamfer(l, w, z, ch) {
                 cube([l + 2, s, s]);
 }
 
-// Alignment/dust lip on the body rim: a thin ring inset one wall + one clearance from the
-// outer face, cut short of the back edge so nothing tall sits inside the hinge swing zone.
-module _hb_lip(l, w, wall, c, lip_t, z, lip_h, y_max, corner_r, fn) {
-    o = wall + c;
+// Alignment/dust lip: the inner portion of the body wall carried up past the seam, flush
+// with the wall's inner face — a shiplap joint with the rebated lid wall, so the lip is
+// solid wall material, not a separate ring. Cut short of the back edge so nothing sits
+// inside the hinge swing zone.
+module _hb_lip(l, w, wall, lip_t, z, lip_h, y_max, corner_r, fn) {
+    o = wall - lip_t;
     intersection() {
-        translate([0, 0, z - 0.05])
-            linear_extrude(height=lip_h + 0.05)
+        translate([0, 0, z - 0.5]) // overlaps the wall top so lip and wall fuse
+            linear_extrude(height=lip_h + 0.5)
                 difference() {
                     translate([o, o])
                         _rounded_rect(l - 2*o, w - 2*o, max(0.1, corner_r - o), fn);
-                    translate([o + lip_t, o + lip_t])
-                        _rounded_rect(l - 2*o - 2*lip_t, w - 2*o - 2*lip_t,
-                                      max(0.1, corner_r - o - lip_t), fn);
+                    translate([wall, wall])
+                        _rounded_rect(l - 2*wall, w - 2*wall,
+                                      max(0.1, corner_r - wall), fn);
                 }
         translate([-1, -1, z - 1]) cube([l + 2, y_max + 1, lip_h + 3]);
     }
@@ -76,10 +78,10 @@ module _hb_lip(l, w, wall, c, lip_t, z, lip_h, y_max, corner_r, fn) {
 
 // Snap ridge on the lip's front outer face: square bottom face retains the closed lid,
 // chamfered top face cams the lid wall outward as it slides down over the lip.
-module _hb_bump(l, wall, c, z, lip_h, latch_w, latch_bump) {
+module _hb_bump(l, wall, lip_t, z, lip_h, latch_w, latch_bump) {
     bh = max(0.6, min(3, lip_h - 1.2));
     z0 = z + max(0.6, (lip_h - bh)/2);
-    yo = wall + c; // lip outer face
+    yo = wall - lip_t; // lip outer face
     hull() {
         translate([l/2 - latch_w/2, yo - 0.01, z0])
             cube([latch_w, 0.02, bh]);
@@ -96,8 +98,8 @@ module _hb_body(l, w, hb, wall, corner_r, div_x, div_y, div_t,
         union() {
             _box_shell(l, w, hb, wall, corner_r, fn);
             _dividers(l, w, hb, wall, div_x, div_y, div_t);
-            _hb_lip(l, w, wall, c, lip_t, hb, lip_h, lip_ymax, corner_r, fn);
-            _hb_bump(l, wall, c, hb, lip_h, latch_w, latch_bump);
+            _hb_lip(l, w, wall, lip_t, hb, lip_h, lip_ymax, corner_r, fn);
+            _hb_bump(l, wall, lip_t, hb, lip_h, latch_w, latch_bump);
             for (x = rib_xs)
                 translate([x - rib_w/2, -rib_d, 0])
                     cube([rib_w, rib_d + 0.01, hb - 0.2]);
@@ -108,15 +110,16 @@ module _hb_body(l, w, hb, wall, corner_r, div_x, div_y, div_t,
 }
 
 // Lid tray in closed-assembly coordinates (opening down, spanning z in [hb, hb+hl]):
-// shell + front/top ribs + latch groove + lid text + hinge-clearance chamfer.
-module _hb_lid(l, w, hb, hl, wall, corner_r, c,
+// shell + lip rebate + front/top ribs + latch groove + lid text + hinge-clearance chamfer.
+module _hb_lid(l, w, hb, hl, wall, corner_r, c, lip_t, lip_ymax,
                lip_h, latch_w, latch_bump,
                rib_xs, rib_w, rib_d, back_ch,
                txt, txt_size, txt_depth, txt_emboss, fn) {
-    top = hb + hl;
-    bh  = max(0.6, min(3, lip_h - 1.2));
-    z0  = hb + max(0.6, (lip_h - bh)/2);
-    gd  = latch_bump - c + 0.2; // groove depth into the wall, from its inner face
+    top   = hb + hl;
+    bh    = max(0.6, min(3, lip_h - 1.2));
+    z0    = hb + max(0.6, (lip_h - bh)/2);
+    y_reb = wall - lip_t - c;   // rebated inner face over the lip engagement zone
+    gd    = latch_bump - c;     // groove depth into the rebated wall
     difference() {
         union() {
             translate([0, 0, hb])
@@ -138,8 +141,20 @@ module _hb_lid(l, w, hb, hl, wall, corner_r, c,
                     linear_extrude(height=txt_depth + 0.01)
                         text(txt, size=txt_size, halign="center", valign="center");
         }
-        // latch groove on the inner face of the front wall, mating the lip's snap ridge
-        translate([l/2 - latch_w/2 - 0.3, wall - gd, z0 - 0.2])
+        // rebate: thin the lid wall's inner portion over the lip engagement zone so the
+        // body's wall-lip slides up inside it (shiplap seam); restricted to where the lip
+        // exists so the back wall around the hinge straps keeps full thickness
+        intersection() {
+            translate([0, 0, hb - 0.05])
+                linear_extrude(height=lip_h + c + 0.15)
+                    translate([y_reb, y_reb])
+                        _rounded_rect(l - 2*y_reb, w - 2*y_reb,
+                                      max(0.1, corner_r - y_reb), fn);
+            translate([-1, -1, hb - 1])
+                cube([l + 2, lip_ymax + c + 1.4, lip_h + c + 2]);
+        }
+        // latch groove in the rebated front wall face, mating the lip's snap ridge
+        translate([l/2 - latch_w/2 - 0.3, y_reb - gd, z0 - 0.2])
             cube([latch_w + 0.6, gd + 0.01, bh + 0.5]);
         if (!txt_emboss && len(txt) > 0)
             translate([l/2, w/2, top - txt_depth])
@@ -257,8 +272,8 @@ module hinged_box(
     leafw = max(1.5, min(10, hl - edge - 0.4));   // piano/knuckle leaf width, fits lid wall
     strapw = max(3, min(16, hl - edge - 0.4));    // crate strap width, fits lid wall
     ch    = crate ? 0 : 0.8;  // rim edge chamfer so the rim clears the low piano barrel
-    lip_t = max(1.2, t/2);
-    lip_he = max(0.8, min(lip_h, hl - t - c));    // lip must fit inside the lid cavity
+    lip_t = min(1, t/2);      // lip = inner portion of the wall: max 1mm or 50% of the wall
+    lip_he = max(0.8, min(lip_h, hl - t - c - 0.2)); // lip + rebate fit inside the lid cavity
     lip_ymax = w - t - c - (lip_he + 2*t);        // keep the lip out of the hinge swing zone
     rw    = rib_w > 0 ? rib_w : 2.5*t;
     rd    = rib_depth > 0 ? rib_depth : t;
@@ -304,8 +319,8 @@ module hinged_box(
             difference() {
                 union() {
                     difference() {
-                        _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w, latch_bump,
-                                rib_xs, rw, rd, ch,
+                        _hb_lid(l, w, hb, hl, t, corner_r, c, lip_t, lip_ymax, lip_he,
+                                latch_w, latch_bump, rib_xs, rw, rd, ch,
                                 lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
                         _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
                     }
@@ -325,8 +340,8 @@ module hinged_box(
                     difference() {
                         union() {
                             difference() {
-                                _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w,
-                                        latch_bump, rib_xs, rw, rd, ch,
+                                _hb_lid(l, w, hb, hl, t, corner_r, c, lip_t, lip_ymax,
+                                        lip_he, latch_w, latch_bump, rib_xs, rw, rd, ch,
                                         lid_text, lid_text_size, lid_text_depth,
                                         lid_text_emboss, fn);
                                 _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);

@@ -73,7 +73,9 @@ groove along the seam gives the pin a clear entry path. Print, then mate the hin
 and slide the pin in along the seam groove — a length of 1.75mm filament for piano/knuckle
 (melt-mushroom the ends to captivate it), a 4mm rod or the printed pins for crate. The lid
 then folds over; the lip registers it and the front ridge snaps into the groove inside the
-lid wall.
+lid wall. The lip is the inner portion of the body wall carried up past the seam
+(`min(1, wall/2)` thick, solid with the wall), and the lid wall is rebated to match — a
+shiplap seam rather than a separate ring.
 
 `pose="closed"` renders the assembled box (pins shown in place) for checking fit,
 proportions, and lid text before printing.
@@ -101,8 +103,8 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 | `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate |
 | `pin_clearance` | 0.25 | Radial pin-to-bore clearance |
 | `leaf_thickness` | 2 | Hinge leaf/strap thickness, recessed into the back walls (clamped to `wall - 0.4`) |
-| `lip_h` | 4 | Alignment lip height above the seam (clamped to fit inside the lid cavity: `lid_depth - wall - lid_clearance`) |
-| `lid_clearance` | 0.3 | Radial clearance between lip and lid inner wall |
+| `lip_h` | 4 | Alignment lip height above the seam (clamped to fit inside the lid cavity) |
+| `lid_clearance` | 0.3 | Radial clearance between the wall-lip and the rebated lid wall |
 | `latch_w` | 14 | Snap latch width, centered on the front |
 | `latch_bump` | 0.8 | Snap ridge protrusion from the lip face |
 | `ribs` | 0 | Rugged-look vertical ribs on the front wall and over the lid top |
