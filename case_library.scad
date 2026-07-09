@@ -182,7 +182,7 @@ module _hb_hinges(type, xs, mount_y, hb, len_each, leaf_w, strap_w, kod, cod,
                                     knuckle_od=cod, knuckle_count=3, axis_height=0,
                                     pin_d=pin, pin_clearance=pin_c, knuckle_gap=0.4,
                                     screws_per_leaf=0, print_pin=false, parts=parts, fn=fn);
-                    else if (type == "piano")
+                    else if (type == "piano" || type == "flush")
                         piano_hinge(length=len_each, leaf_width=leaf_w, leaf_thickness=leaf_t,
                                     knuckle_od=kod, pin_d=pin, pin_clearance=pin_c,
                                     integral_pin=false, print_pin=false, parts=parts, fn=fn);
@@ -221,6 +221,11 @@ module _hb_axis_cyl(xs, len_each, y, z, r, fn) {
 //   "knuckle" — hinge_count discrete knuckle hinges (lighter, classic look).
 //   "crate"   — chunky raised-lug crate hinges for the rugged/ammo-box look; pair with
 //               ribs > 0. Lid opens past 180 degrees.
+//   "flush"   — fully hidden hinge: pivot centered inside the back wall, knuckle OD equals
+//               the wall thickness, zero protrusion. Costs opening range (~120 degrees, not
+//               180) and needs a thin pin (~wall - 1.4, e.g. a 1mm paperclip wire at 2.4
+//               walls), inserted through the port on the rounded back corner. A full-length
+//               cove relief along the seam lets the rims swing past the buried axis.
 //
 // An alignment lip on the body rim registers the closed lid; a snap ridge on the lip's
 // front face clicks into a groove inside the lid wall. Clearances are a best-effort
@@ -264,14 +269,18 @@ module hinged_box(
 ) {
     l = length; w = width; hb = height; hl = lid_depth; t = wall; c = lid_clearance;
     crate = hinge_type == "crate";
-    kod   = knuckle_od > 0 ? knuckle_od : max(5, 2*t);
+    flush = hinge_type == "flush";
+    kod   = flush ? t : (knuckle_od > 0 ? knuckle_od : max(5, 2*t));
     cod   = 9;                                    // crate barrel OD
-    pin   = pin_d > 0 ? pin_d : (crate ? 4 : 1.75);
+    pin   = pin_d > 0 ? pin_d
+          : flush ? max(0.8, t - 1.4)             // ~1mm rod/wire (a paperclip) at 2.4 wall
+          : crate ? 4 : 1.75;
     edge  = crate ? cod/2 + 0.4 : kod/2 + 0.3;    // barrel-to-strap edge, per hinge module
-    leaf_te = min(leaf_thickness, t - 0.4);       // leaf recessed into the wall: keep it under
+    leaf_te = flush ? t/2                         // flush: anchor plates fill the inner half
+            : min(leaf_thickness, t - 0.4);       // else recessed, keep under the wall
     leafw = max(1.5, min(10, hl - edge - 0.4));   // piano/knuckle leaf width, fits lid wall
     strapw = max(3, min(16, hl - edge - 0.4));    // crate strap width, fits lid wall
-    ch    = crate ? 0 : 0.8;  // rim edge chamfer so the rim clears the low piano barrel
+    ch    = (crate || flush) ? 0 : 0.8; // rim chamfer to clear the low external piano barrel
     lip_t = min(1, t/2);      // lip = inner portion of the wall: max 1mm or 50% of the wall
     lip_he = max(0.8, min(lip_h, hl - t - c - 0.2)); // lip + rebate fit inside the lid cavity
     lip_ymax = w - t - c - (lip_he + 2*t);        // keep the lip out of the hinge swing zone
@@ -279,21 +288,28 @@ module hinged_box(
     rd    = rib_depth > 0 ? rib_depth : t;
     rib_m = max(corner_r, rw) + 2;
     rib_xs = ribs <= 0 ? [] : [for (i = [0:ribs-1]) rib_m + (l - 2*rib_m)*(i + 0.5)/ribs];
-    xs    = (hinge_type == "piano" || hinge_count <= 1) ? [l/2]
+    piano_like = hinge_type == "piano" || flush;
+    xs    = (piano_like || hinge_count <= 1) ? [l/2]
           : [for (i = [0:hinge_count-1])
                 hinge_margin + hinge_len/2
                 + i*(l - 2*hinge_margin - hinge_len)/(hinge_count - 1)];
-    len_each = hinge_type == "piano" ? l - 2*hinge_margin : hinge_len;
-    mount_y  = w - leaf_te;                       // leaf mount plane, recessed into the wall
-    y_ax     = mount_y + (crate ? cod : kod/2);   // hinge axis y (leaves flush, barrel proud)
-    relief_r = crate ? 0 : kod/2 + 0.4;           // notch mating rims around foreign knuckles
+    len_each = piano_like ? l - 2*hinge_margin : hinge_len;
+    mount_y  = flush ? w - t : w - leaf_te;       // leaf mount plane inside the wall
+    y_ax     = mount_y + (crate ? cod : kod/2);   // flush: axis mid-wall, zero protrusion
+    relief_r = crate ? 0 : flush ? t : kod/2 + 0.4; // rim relief around the barrel/knuckles;
+                                                  // flush needs a full cove or the lid binds
+    rel_xs   = flush ? [l/2] : xs;                // flush: relieve the whole seam, since the
+    rel_len  = flush ? l + 2 : len_each;          // side-wall rim corners swing past the axis
     bore_r   = pin/2 + pin_clearance + 0.05;      // top-level pin bore radius
     y_off    = 2*w + 15;                          // lid print position gap
 
     echo(str("hinged_box: body ", l, "x", w, "x", hb, "mm + lid ", l, "x", w, "x", hl,
              "mm (outer), hinge=", hinge_type, ", pin d=", pin,
              crate ? "mm (printed pins beside the parts)"
-                   : "mm (use a length of 1.75mm filament as the pin)"));
+                   : flush ? "mm (use a rod/wire of that dia as the pin, e.g. a paperclip)"
+                           : "mm (use a length of 1.75mm filament as the pin)"));
+    if (flush)
+        echo("hinged_box flush hinge: lid opens ~120 degrees, not 180; pin enters through the port on the rounded back corner");
     echo(str("hinged_box internal: footprint ", l - 2*t, "x", w - 2*t,
              "mm, body cavity depth ", hb - t,
              "mm, closed clearance floor-to-lid ", hb + hl - 2*t, "mm"));
@@ -307,7 +323,7 @@ module hinged_box(
                     _hb_body(l, w, hb, t, corner_r, div_x, div_y, div_thickness,
                              lip_he, lip_t, c, lip_ymax, latch_w, latch_bump,
                              rib_xs, rw, rd, ch, fn);
-                    _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
+                    _hb_axis_cyl(rel_xs, rel_len, y_ax, hb, relief_r, fn);
                 }
                 _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw, kod, cod,
                            pin, pin_clearance, leaf_te, "leaf2", fn);
@@ -322,7 +338,7 @@ module hinged_box(
                         _hb_lid(l, w, hb, hl, t, corner_r, c, lip_t, lip_ymax, lip_he,
                                 latch_w, latch_bump, rib_xs, rw, rd, ch,
                                 lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
-                        _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
+                        _hb_axis_cyl(rel_xs, rel_len, y_ax, hb, relief_r, fn);
                     }
                     _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw, kod, cod,
                                pin, pin_clearance, leaf_te, "leaf1", fn);
@@ -344,7 +360,7 @@ module hinged_box(
                                         lip_he, latch_w, latch_bump, rib_xs, rw, rd, ch,
                                         lid_text, lid_text_size, lid_text_depth,
                                         lid_text_emboss, fn);
-                                _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
+                                _hb_axis_cyl(rel_xs, rel_len, y_ax, hb, relief_r, fn);
                             }
                             _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw,
                                        kod, cod, pin, pin_clearance, leaf_te, "leaf1", fn);

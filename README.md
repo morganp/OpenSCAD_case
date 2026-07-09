@@ -38,11 +38,27 @@ hinged_box(
 | `"piano"` (default) | One continuous knuckle hinge across the back seam — even load spread, sturdiest | 1.75mm filament offcut |
 | `"knuckle"` | `hinge_count` discrete knuckle hinges — lighter, classic look | 1.75mm filament offcut |
 | `"crate"` | Chunky raised-lug crate hinges, lid opens past 180° — the rugged/ammo-box look | 4mm rod, or the printed pins emitted beside the parts |
+| `"flush"` | Fully hidden hinge: pivot buried mid-wall, knuckle OD = wall thickness, zero protrusion; lid opens ~120°, not 180° | ~`wall - 1.4` rod/wire (1mm paperclip at 2.4 walls), inserted through the port on the rounded back corner |
 
 The hinge geometry itself comes from
 [OpenSCAD_hinge](https://github.com/morganp/OpenSCAD_hinge)'s `piano_hinge` /
 `knuckle_hinge` / `crate_hinge`, emitted one leaf at a time (`parts="leaf1"/"leaf2"`) so
 each printed part gets its own fused leaf.
+
+### Flush (hidden) hinge variation
+
+`hinge_type="flush"` buries the pivot in the middle of the back wall: the knuckles are sized
+to the wall thickness and nothing protrudes past the outer face — the hinge reads as a plain
+seam with a knuckle line inside a full-length cove. The trade-offs are a ~120° opening
+(anything through a mid-wall pivot must be coaxial knuckles, and the rims need the cove to
+swing past the buried axis) and a thin pin, `wall - 1.4` (a 1mm paperclip wire at the default
+2.4 wall) pushed in through the small port on the rounded back corner.
+
+| Print pose | Closed |
+|---|---|
+| ![flush_box print pose](renders/flush_box.png) | ![flush_box closed](renders/flush_box_closed.png) |
+
+**[▶ Open in SCAD Studio](https://lizard-spock.co.uk/openscad-gui/?github=morganp/OpenSCAD_case/examples/flush_box_demo.scad)**
 
 ### Rugged box variation
 
@@ -95,12 +111,12 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 | `div_x` | 0 | Internal dividers splitting `length` (walls run along Y) |
 | `div_y` | 0 | Internal dividers splitting `width` (walls run along X) |
 | `div_thickness` | 1.6 | Divider wall thickness |
-| `hinge_type` | "piano" | `"piano"` / `"knuckle"` / `"crate"` |
+| `hinge_type` | "piano" | `"piano"` / `"knuckle"` / `"crate"` / `"flush"` |
 | `hinge_count` | 2 | Number of discrete hinges (knuckle/crate) |
 | `hinge_len` | 30 | Leaf length along X per discrete hinge (knuckle/crate) |
 | `hinge_margin` | 8 | Hinge inset from each end along X |
-| `knuckle_od` | 0 (auto) | Piano/knuckle barrel OD; auto = `max(5, 2*wall)` |
-| `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate |
+| `knuckle_od` | 0 (auto) | Piano/knuckle barrel OD; auto = `max(5, 2*wall)`; flush forces `wall` |
+| `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate, `wall - 1.4` for flush |
 | `pin_clearance` | 0.25 | Radial pin-to-bore clearance |
 | `leaf_thickness` | 2 | Hinge leaf/strap thickness, recessed into the back walls (clamped to `wall - 0.4`) |
 | `lip_h` | 4 | Alignment lip height above the seam (clamped to fit inside the lid cavity) |
