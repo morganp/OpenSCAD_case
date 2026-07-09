@@ -152,17 +152,18 @@ module _hb_lid(l, w, hb, hl, wall, corner_r, c,
 
 // Hinge leaves along the back seam, in closed-assembly coordinates. The hinge modules
 // generate flat at Z=0 with the axis along Y; this reorients them so the mount plane lands
-// on the back face (y=w), the axis runs along X at the seam height, leaf2 straps onto the
-// body (below the seam) and leaf1 onto the lid (above it).
-module _hb_hinges(type, xs, w, hb, len_each, leaf_w, strap_w, kod, cod,
+// at mount_y (the back face minus the recess depth, so the leaf plates sit inside the
+// walls, outer face flush), the axis runs along X at the seam height, leaf2 straps into
+// the body (below the seam) and leaf1 into the lid (above it).
+module _hb_hinges(type, xs, mount_y, hb, len_each, leaf_w, strap_w, kod, cod,
                   pin, pin_c, leaf_t, parts, fn) {
     for (x = xs)
-        translate([x, w, hb])
+        translate([x, mount_y, hb])
             rotate([-90, 0, 0])
                 rotate([0, 0, 90]) {
                     if (type == "crate")
                         crate_hinge(leaf_length=len_each, strap_width=strap_w,
-                                    strap_thickness=leaf_t + 1.5,
+                                    strap_thickness=leaf_t,
                                     knuckle_od=cod, knuckle_count=3, axis_height=0,
                                     pin_d=pin, pin_clearance=pin_c, knuckle_gap=0.4,
                                     screws_per_leaf=0, print_pin=false, parts=parts, fn=fn);
@@ -176,6 +177,18 @@ module _hb_hinges(type, xs, w, hb, len_each, leaf_w, strap_w, kod, cod,
                                       pin_d=pin, pin_clearance=pin_c, knuckle_gap=0.3,
                                       integral_pin=false, print_pin=false, parts=parts, fn=fn);
                 }
+}
+
+// Cylinder(s) along the hinge axis, one per hinge span: used both as the knuckle relief
+// notch cut from the mating rims (r = barrel radius + clearance) and as the top-level pin
+// bore (r = pin radius + clearance) cut after the leaves are unioned in, so wall material
+// never refills the embedded back half of the bore.
+module _hb_axis_cyl(xs, len_each, y, z, r, fn) {
+    if (r > 0)
+        for (x = xs)
+            translate([x - len_each/2 - 0.5, y, z])
+                rotate([0, 90, 0])
+                    cylinder(h=len_each + 1, r=r, $fn=fn);
 }
 
 // ---------------------------------------------------------------------------
@@ -218,7 +231,8 @@ module hinged_box(
     knuckle_od      = 0,      // piano/knuckle barrel OD; 0 = auto (max(5, 2*wall))
     pin_d           = 0,      // hinge pin dia; 0 = auto (1.75 filament, 4 for crate)
     pin_clearance   = 0.25,
-    leaf_thickness  = 2,      // hinge leaf/strap thickness on the back faces
+    leaf_thickness  = 2,      // hinge leaf/strap thickness, recessed into the back walls
+                              // (clamped to wall - 0.4 so the leaf stays inside the wall)
     lip_h           = 4,      // alignment lip height above the seam
     lid_clearance   = 0.3,    // radial clearance between lip and lid inner wall
     latch_w         = 14,     // width of the snap latch, centered on the front
@@ -239,8 +253,9 @@ module hinged_box(
     cod   = 9;                                    // crate barrel OD
     pin   = pin_d > 0 ? pin_d : (crate ? 4 : 1.75);
     edge  = crate ? cod/2 + 0.4 : kod/2 + 0.3;    // barrel-to-strap edge, per hinge module
-    leafw = max(4, min(10, hl - edge - 0.6));     // piano/knuckle leaf width, fits lid wall
-    strapw = max(6, min(16, hl - edge - 0.6));    // crate strap width, fits lid wall
+    leaf_te = min(leaf_thickness, t - 0.4);       // leaf recessed into the wall: keep it under
+    leafw = max(1.5, min(10, hl - edge - 0.4));   // piano/knuckle leaf width, fits lid wall
+    strapw = max(3, min(16, hl - edge - 0.4));    // crate strap width, fits lid wall
     ch    = crate ? 0 : 0.8;  // rim edge chamfer so the rim clears the low piano barrel
     lip_t = max(1.2, t/2);
     lip_he = max(0.8, min(lip_h, hl - t - c));    // lip must fit inside the lid cavity
@@ -254,7 +269,10 @@ module hinged_box(
                 hinge_margin + hinge_len/2
                 + i*(l - 2*hinge_margin - hinge_len)/(hinge_count - 1)];
     len_each = hinge_type == "piano" ? l - 2*hinge_margin : hinge_len;
-    standoff = crate ? cod : kod/2;               // hinge axis offset from the back face
+    mount_y  = w - leaf_te;                       // leaf mount plane, recessed into the wall
+    y_ax     = mount_y + (crate ? cod : kod/2);   // hinge axis y (leaves flush, barrel proud)
+    relief_r = crate ? 0 : kod/2 + 0.4;           // notch mating rims around foreign knuckles
+    bore_r   = pin/2 + pin_clearance + 0.05;      // top-level pin bore radius
     y_off    = 2*w + 15;                          // lid print position gap
 
     echo(str("hinged_box: body ", l, "x", w, "x", hb, "mm + lid ", l, "x", w, "x", hl,
@@ -263,32 +281,58 @@ module hinged_box(
                    : "mm (use a length of 1.75mm filament as the pin)"));
 
     translate([-l/2, -w/2, 0]) {
-        _hb_body(l, w, hb, t, corner_r, div_x, div_y, div_thickness,
-                 lip_he, lip_t, c, lip_ymax, latch_w, latch_bump,
-                 rib_xs, rw, rd, ch, fn);
-        _hb_hinges(hinge_type, xs, w, hb, len_each, leafw, strapw, kod, cod,
-                   pin, pin_clearance, leaf_thickness, "leaf2", fn);
+        // body: notch the rim around the foreign (lid-side) knuckles, fuse the body leaf,
+        // then bore the pin channel through leaf and wall together
+        difference() {
+            union() {
+                difference() {
+                    _hb_body(l, w, hb, t, corner_r, div_x, div_y, div_thickness,
+                             lip_he, lip_t, c, lip_ymax, latch_w, latch_bump,
+                             rib_xs, rw, rd, ch, fn);
+                    _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
+                }
+                _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw, kod, cod,
+                           pin, pin_clearance, leaf_te, "leaf2", fn);
+            }
+            _hb_axis_cyl([l/2], l + 2, y_ax, hb, bore_r, fn); // full-length: pin entry groove
+        }
 
         if (pose == "closed") {
-            _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w, latch_bump,
-                    rib_xs, rw, rd, ch,
-                    lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
-            _hb_hinges(hinge_type, xs, w, hb, len_each, leafw, strapw, kod, cod,
-                       pin, pin_clearance, leaf_thickness, "leaf1", fn);
+            difference() {
+                union() {
+                    difference() {
+                        _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w, latch_bump,
+                                rib_xs, rw, rd, ch,
+                                lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
+                        _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
+                    }
+                    _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw, kod, cod,
+                               pin, pin_clearance, leaf_te, "leaf1", fn);
+                }
+                _hb_axis_cyl([l/2], l + 2, y_ax, hb, bore_r, fn); // full-length: pin entry groove
+            }
             for (x = xs) // pins shown in place
-                translate([x - len_each/2, w + standoff, hb])
+                translate([x - len_each/2, y_ax, hb])
                     rotate([0, 90, 0])
                         cylinder(h=len_each, r=pin/2, $fn=fn);
         } else {
             // lid printed opening-up beyond the body in +Y, its hinge leaf riding along
             translate([0, y_off, hb + hl])
-                rotate([180, 0, 0]) {
-                    _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w, latch_bump,
-                            rib_xs, rw, rd, ch,
-                            lid_text, lid_text_size, lid_text_depth, lid_text_emboss, fn);
-                    _hb_hinges(hinge_type, xs, w, hb, len_each, leafw, strapw, kod, cod,
-                               pin, pin_clearance, leaf_thickness, "leaf1", fn);
-                }
+                rotate([180, 0, 0])
+                    difference() {
+                        union() {
+                            difference() {
+                                _hb_lid(l, w, hb, hl, t, corner_r, c, lip_he, latch_w,
+                                        latch_bump, rib_xs, rw, rd, ch,
+                                        lid_text, lid_text_size, lid_text_depth,
+                                        lid_text_emboss, fn);
+                                _hb_axis_cyl(xs, len_each, y_ax, hb, relief_r, fn);
+                            }
+                            _hb_hinges(hinge_type, xs, mount_y, hb, len_each, leafw, strapw,
+                                       kod, cod, pin, pin_clearance, leaf_te, "leaf1", fn);
+                        }
+                        _hb_axis_cyl([l/2], l + 2, y_ax, hb, bore_r, fn); // full-length: pin entry groove
+                    }
             if (crate) // printed pins, one per hinge, lying in front of the body
                 for (i = [0:len(xs)-1])
                     translate([l/2 - (len_each - 1)/2, -rd - 8 - i*(pin + 4), pin/2])

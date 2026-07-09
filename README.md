@@ -66,10 +66,14 @@ hinged_box(
 ### How it prints and assembles
 
 `pose="print"` (default) lays both parts flat on the bed: the body upright, the lid beyond
-it in +Y opening up. Print, then mate the hinge knuckles and push the pin through — a length
-of 1.75mm filament for piano/knuckle (melt-mushroom the ends to captivate it), a 4mm rod or
-the printed pins for crate. The lid then folds over; the lip registers it and the front
-ridge snaps into the groove inside the lid wall.
+it in +Y opening up. The hinge leaves are recessed flush into the back walls (leaf thickness
+is clamped below the wall, leaf width below the lid depth), so only the barrel sits proud of
+the back face; the mating rims are notched around each other's knuckles, and a half-round
+groove along the seam gives the pin a clear entry path. Print, then mate the hinge knuckles
+and slide the pin in along the seam groove — a length of 1.75mm filament for piano/knuckle
+(melt-mushroom the ends to captivate it), a 4mm rod or the printed pins for crate. The lid
+then folds over; the lip registers it and the front ridge snaps into the groove inside the
+lid wall.
 
 `pose="closed"` renders the assembled box (pins shown in place) for checking fit,
 proportions, and lid text before printing.
@@ -96,7 +100,7 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 | `knuckle_od` | 0 (auto) | Piano/knuckle barrel OD; auto = `max(5, 2*wall)` |
 | `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate |
 | `pin_clearance` | 0.25 | Radial pin-to-bore clearance |
-| `leaf_thickness` | 2 | Hinge leaf/strap thickness on the back faces |
+| `leaf_thickness` | 2 | Hinge leaf/strap thickness, recessed into the back walls (clamped to `wall - 0.4`) |
 | `lip_h` | 4 | Alignment lip height above the seam (clamped to fit inside the lid cavity: `lid_depth - wall - lid_clearance`) |
 | `lid_clearance` | 0.3 | Radial clearance between lip and lid inner wall |
 | `latch_w` | 14 | Snap latch width, centered on the front |
