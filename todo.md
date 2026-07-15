@@ -1,5 +1,12 @@
 # todo
 
+## Done 2026-07-15 — flush case uses flush_knuckle_hinge
+
+- [x] `hinge_type="flush"` now emits `flush_knuckle_hinge` from the hinge library instead of
+      emulating a buried pivot with a thin-leaf `piano_hinge`. Full-thickness leaf plates run
+      to the axis with scallop nesting, so the lid opens flat to 180 (was ~120). Rugged
+      ("crate") path unchanged. Pin/cap/blind-plug retention scheme unchanged (0.8mm rod).
+
 ## Done 2026-07-09 — hinged_box redesign (two-tray, pinned hinges)
 
 Review found the old flat-fold design unprintable at all (the open-pose lid panel floated at

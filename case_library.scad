@@ -182,7 +182,19 @@ module _hb_hinges(type, xs, mount_y, hb, len_each, leaf_w, strap_w, kod, cod,
                                     knuckle_od=cod, knuckle_count=3, axis_height=0,
                                     pin_d=pin, pin_clearance=pin_c, knuckle_gap=0.4,
                                     screws_per_leaf=0, print_pin=false, parts=parts, fn=fn);
-                    else if (type == "piano" || type == "flush")
+                    else if (type == "flush") {
+                        // odd knuckle count at ~8mm pitch, like piano_hinge, so the
+                        // lid leaf owns both end knuckles and the pin stays captive
+                        raw = max(3, round(len_each / 8));
+                        flush_knuckle_hinge(leaf_length=len_each, leaf_width=leaf_w,
+                                            knuckle_od=kod,
+                                            knuckle_count=raw % 2 == 0 ? raw + 1 : raw,
+                                            pin_d=pin, pin_clearance=pin_c,
+                                            knuckle_gap=0.3, scallop_clearance=0.3,
+                                            integral_pin=false, print_pin=false,
+                                            parts=parts, fn=fn);
+                    }
+                    else if (type == "piano")
                         piano_hinge(length=len_each, leaf_width=leaf_w, leaf_thickness=leaf_t,
                                     knuckle_od=kod, pin_d=pin, pin_clearance=pin_c,
                                     integral_pin=false, print_pin=false, parts=parts, fn=fn);
@@ -221,9 +233,12 @@ module _hb_axis_cyl(xs, len_each, y, z, r, fn) {
 //   "knuckle" — hinge_count discrete knuckle hinges (lighter, classic look).
 //   "crate"   — chunky raised-lug crate hinges for the rugged/ammo-box look; pair with
 //               ribs > 0. Lid opens past 180 degrees.
-//   "flush"   — fully hidden hinge: pivot centered inside the back wall, knuckle OD equals
-//               the wall thickness, zero protrusion; works down to 2mm walls. Costs opening
-//               range (~120 degrees, not 180). Pin is a 0.8mm rod/wire slid in along the
+//   "flush"   — fully hidden hinge (flush_knuckle_hinge): pivot centered inside the back
+//               wall, knuckle OD equals the wall thickness, zero protrusion; works down to
+//               2mm walls. The leaf plates are full wall thickness and run right up to the
+//               axis, with a scallop along each inner edge nesting the other leaf's
+//               knuckles, so the lid opens flat to 180 degrees (closes flat, folds flat).
+//               Pin is a 0.8mm rod/wire slid in along the
 //               seam from past the left corner (the axis line runs through open air behind
 //               the corner rounding, so no tunnel is needed); a plug fused inside the far
 //               knuckle makes that end blind, and a small printed cap glues into the first
@@ -281,9 +296,11 @@ module hinged_box(
     pinc  = flush ? min(pin_clearance, 0.15) : pin_clearance; // thin flush knuckles need a
                                                   // snugger bore to keep any skin around it
     edge  = crate ? cod/2 + 0.4 : kod/2 + 0.3;    // barrel-to-strap edge, per hinge module
-    leaf_te = flush ? t/2                         // flush: anchor plates fill the inner half
-            : min(leaf_thickness, t - 0.4);       // else recessed, keep under the wall
-    leafw = max(1.5, min(10, hl - edge - 0.4));   // piano/knuckle leaf width, fits lid wall
+    leaf_te = min(leaf_thickness, t - 0.4);       // recessed leaf thickness; the flush hinge
+                                                  // ignores it (its plates are kod thick)
+    leafw = flush ? max(t, min(10, hl - 0.4))     // flush plate: axis to outer edge, embeds
+                                                  // full-depth in the back wall
+          : max(1.5, min(10, hl - edge - 0.4));   // piano/knuckle leaf width, fits lid wall
     strapw = max(3, min(16, hl - edge - 0.4));    // crate strap width, fits lid wall
     ch    = (crate || flush) ? 0 : 0.8; // rim chamfer to clear the low external piano barrel
     lip_t = min(1, t/2);      // lip = inner portion of the wall: max 1mm or 50% of the wall
@@ -329,7 +346,7 @@ module hinged_box(
                    : flush ? "mm (use a rod/wire of that dia as the pin, e.g. a paperclip)"
                            : "mm (use a length of 1.75mm filament as the pin)"));
     if (flush)
-        echo(str("hinged_box flush hinge: lid opens ~120 degrees, not 180. Cut the ", pin,
+        echo(str("hinged_box flush hinge: lid opens flat to 180 degrees. Cut the ", pin,
                  "mm rod to ~", round(rod_len), "mm, slide it in along the seam from past",
                  " the left corner until it stops (the far end is blind), then glue the",
                  " printed cap's stem into the first knuckle's bore behind it."));

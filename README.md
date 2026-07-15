@@ -38,20 +38,22 @@ hinged_box(
 | `"piano"` (default) | One continuous knuckle hinge across the back seam — even load spread, sturdiest | 1.75mm filament offcut |
 | `"knuckle"` | `hinge_count` discrete knuckle hinges — lighter, classic look | 1.75mm filament offcut |
 | `"crate"` | Chunky raised-lug crate hinges, lid opens past 180° — the rugged/ammo-box look | 4mm rod, or the printed pins emitted beside the parts |
-| `"flush"` | Fully hidden hinge: pivot buried mid-wall, knuckle OD = wall thickness, zero protrusion; works down to 2mm walls; lid opens ~120°, not 180° | 0.8mm rod/wire, slid in along the seam; far end blind, printed cap glues into the first knuckle |
+| `"flush"` | Fully hidden hinge: pivot buried mid-wall, knuckle OD = wall thickness, zero protrusion; works down to 2mm walls; lid opens flat to 180° | 0.8mm rod/wire, slid in along the seam; far end blind, printed cap glues into the first knuckle |
 
 The hinge geometry itself comes from
 [OpenSCAD_hinge](https://github.com/morganp/OpenSCAD_hinge)'s `piano_hinge` /
-`knuckle_hinge` / `crate_hinge`, emitted one leaf at a time (`parts="leaf1"/"leaf2"`) so
-each printed part gets its own fused leaf.
+`knuckle_hinge` / `crate_hinge` / `flush_knuckle_hinge`, emitted one leaf at a time
+(`parts="leaf1"/"leaf2"`) so each printed part gets its own fused leaf.
 
 ### Flush (hidden) hinge variation
 
 `hinge_type="flush"` buries the pivot in the middle of the back wall: the knuckles are sized
 to the wall thickness and nothing protrudes past the outer face — the hinge reads as a plain
-seam with a knuckle line inside a cove. Works down to 2mm walls (2mm knuckles). The trade-off
-is a ~120° opening: anything through a mid-wall pivot must be coaxial knuckles, and the rims
-need the cove to swing past the buried axis.
+seam with a knuckle line inside a cove. Works down to 2mm walls (2mm knuckles). The hinge is
+`flush_knuckle_hinge`: each leaf plate is as thick as the wall and runs right up to the axis,
+with a scallop along its inner edge that nests the other leaf's knuckles at close radial
+tolerance, so it closes flat and the lid opens flat to a full 180°. Outside the hinge span
+the rims still carry a cove relief to swing past the buried axis.
 
 The pin is a 0.8mm rod or wire (`pin_d` auto). The axis line runs through open air behind
 the rounded back corner, so the rod slides straight in along the seam with no tunnel; a plug
@@ -122,7 +124,7 @@ supports; the chunky crate lugs stick out further and may want supports or tuned
 | `hinge_len` | 30 | Leaf length along X per discrete hinge (knuckle/crate) |
 | `hinge_margin` | 8 | Hinge inset from each end along X |
 | `knuckle_od` | 0 (auto) | Piano/knuckle barrel OD; auto = `max(5, 2*wall)`; flush forces `wall` |
-| `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate, `wall - 1.4` for flush |
+| `pin_d` | 0 (auto) | Hinge pin diameter; auto = 1.75 (filament), 4 for crate, 0.8 for flush |
 | `pin_clearance` | 0.25 | Radial pin-to-bore clearance |
 | `leaf_thickness` | 2 | Hinge leaf/strap thickness, recessed into the back walls (clamped to `wall - 0.4`) |
 | `lip_h` | 4 | Alignment lip height above the seam (clamped to fit inside the lid cavity) |
